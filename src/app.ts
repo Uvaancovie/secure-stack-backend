@@ -9,6 +9,13 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
+// When running behind a proxy (Render, Vercel, Heroku, etc.) enable trust proxy
+// so Express (and middleware like express-rate-limit) will correctly read
+// the X-Forwarded-* headers. This prevents express-rate-limit from throwing
+// the ERR_ERL_UNEXPECTED_X_FORWARDED_FOR validation error when the proxy
+// sets X-Forwarded-For.
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
