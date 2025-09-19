@@ -26,12 +26,27 @@ app.use(helmet({
 
 // More permissive CORS for development
 console.log('WEB_ORIGIN:', process.env.WEB_ORIGIN);
-app.use(cors({ 
-  origin: process.env.WEB_ORIGIN || 'http://localhost:5173', 
+// Configure CORS with an allowlist. Support a comma-separated WEB_ORIGIN env var.
+const rawOrigins = (process.env.WEB_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+
+const corsOptions = {
+  origin: (incomingOrigin: string | undefined, callback: (err: Error | null, allowed?: boolean | string) => void) => {
+    // If no origin (e.g. curl, server-to-server), allow it.
+    if (!incomingOrigin) return callback(null, true)
+    if (rawOrigins.includes(incomingOrigin)) return callback(null, incomingOrigin)
+    return callback(new Error('CORS origin denied'))
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+}
+
+app.use(cors(corsOptions))
+// Ensure OPTIONS preflight responses are handled quickly
+app.options('*', cors(corsOptions))
 app.use(cookieParser());
 app.use(express.json());
 
